@@ -100,7 +100,7 @@ function RemoveBranchStartCommit([String]$commitToRemove) {
 
   # Now we need to remove the extra commit we inserted which the new branch was created from.
   #
-  # A simple reabase --onto ought to do the trick, right?  Well, yes that does work, but a
+  # A simple rebase --onto ought to do the trick, right?  Well, yes that does work, but a
   # rebase also updates the commit author and date, making the first imported commits on a
   # branch inconsistent with any further imported commits.  I attempted to undo that with a
   # git filter-branch:
