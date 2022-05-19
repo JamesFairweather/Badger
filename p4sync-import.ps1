@@ -251,6 +251,23 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
       Pop-Location
       return
     }
+
+    $p4interchanges = p4 interchanges -r -S $depotPath
+    if ($p4interchanges.count -ne 0) {
+      Write-Host "##vso[debug]The new stream has unintegrated changes from its parent"
+      # This means that the parent stream (main) has changes that have not been integrated
+      # to the new child stream.  We need to roll back the branch point to the last change
+      # that *was* integrated
+      if ($p4interchanges[0] -match 'Change (\d+)') {
+        $firstChangeOnNewBranch = [int]$Matches[1] - 1
+        Write-Host "##[debug]Last revision integrated to the new stream is $firstChangeOnNewBranch"
+      }
+      else {
+        Write-Host "##vso[task.logissue type=error]Unable to find the correct branch point"
+        Pop-Location
+        return
+      }
+    }
   }
 
   # Import any unimported changes to the base branch.  This won't be do anything most
