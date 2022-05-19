@@ -306,8 +306,7 @@ else {
 # push the imported changes to the remote repo.  This should *never* fail because
 # there can only be a single instance of this pipeline running and this script is
 # the only place the git repo is updated from
-Write-Host "##[debug]Pushing..."
-# git push origin $sourceBranch
+git push origin $sourceBranch
 
 Pop-Location
 
@@ -350,8 +349,7 @@ do {
     # pushes failing are small enough that we can disregard the possibility.
     git fetch origin
     git rebase "origin/$sourceBranch"
-    Write-Host "##[debug]pushing 2 ..."
-    # git push -u origin $sourceBranch
+    git push -u origin $sourceBranch
     Write-Host "##[debug]Badger was updated successfully with new submodules"
     return # completed successfully
   }
