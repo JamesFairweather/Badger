@@ -242,6 +242,7 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
       }
     }
 
+    $firstChangeOnNewBranch = 0
     $p4interchanges = p4 interchanges -r -S $depotPath
     if ($p4interchanges.count -ne 0) {
       Write-Host "##vso[debug]The new stream has unintegrated changes from its parent"
@@ -249,25 +250,11 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
       # to the new child stream.  We need to roll back the branch point to the last change
       # that *was* integrated
       if ($p4interchanges[0] -match 'Change (\d+)') {
-        $firstChangeOnNewBranch = [int]$Matches[1] - 1
+        $firstChangeOnNewBranch = [int]$Matches[1]
         Write-Host "##[debug]Last revision integrated to the new stream is $firstChangeOnNewBranch"
       }
       else {
         Write-Host "##vso[task.logissue type=error]Unable to find the correct branch point"
-        Pop-Location
-        return
-      }
-    }
-    else {
-      # The parent stream does not have any changes that the child stream does not also have
-      # Therefore the branch point is the head of the parent stream, and the first change
-      # on the new branch is the 
-      if ($p4changes[0] -match 'Change (\d+)') {
-        $firstChangeOnNewBranch = [int]$Matches[1]
-        Write-Host "##[debug]First changelist on this branch is $firstChangeOnNewBranch"
-      }
-      else {
-        Write-Host "##vso[task.logissue type=error]Unable to find the first change on the new branch"
         Pop-Location
         return
       }
@@ -291,9 +278,11 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
   $commitToBranchFrom = $defaultBranchName
   Write-Host "##[debug]commit is $commitToBranchFrom"
   # Find the point where the new branch was created.
-  while ((GetChangelistFromGitCommit($commitToBranchFrom)) -gt $firstChangeOnNewBranch) {
-    Write-Host "##[debug]rejected commit $commitToBranchFrom as it is for a changelist ahead of the branch point $firstChangeOnNewBranch."
-    $commitToBranchFrom = git rev-parse $commitToBranchFrom^
+  if ($firstChangeOnNewBranch -ne 0) {
+    while ((GetChangelistFromGitCommit($commitToBranchFrom)) -ge $firstChangeOnNewBranch) {
+      Write-Host "##[debug]rejected commit $commitToBranchFrom as it is for a changelist ahead of the branch point $firstChangeOnNewBranch."
+      $commitToBranchFrom = git rev-parse $commitToBranchFrom^
+    }
   }
 
   Write-Host "##[debug] new branch will be created at commit $commitToBranchFrom"
