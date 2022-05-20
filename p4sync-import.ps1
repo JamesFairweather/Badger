@@ -242,16 +242,6 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
       }
     }
 
-    if ($p4changes[0] -match 'Change (\d+)') {
-      $firstChangeOnNewBranch = [int]$Matches[1]
-      Write-Host "##[debug]First changelist on this branch is $firstChangeOnNewBranch"
-    }
-    else {
-      Write-Host "##vso[task.logissue type=error]Unable to find the first change on the new branch"
-      Pop-Location
-      return
-    }
-
     $p4interchanges = p4 interchanges -r -S $depotPath
     if ($p4interchanges.count -ne 0) {
       Write-Host "##vso[debug]The new stream has unintegrated changes from its parent"
@@ -264,6 +254,20 @@ elseif (($sourceBranch -ne $defaultBranchName) -and (!(git show-ref $sourceBranc
       }
       else {
         Write-Host "##vso[task.logissue type=error]Unable to find the correct branch point"
+        Pop-Location
+        return
+      }
+    }
+    else {
+      # The parent stream does not have any changes that the child stream does not also have
+      # Therefore the branch point is the head of the parent stream, and the first change
+      # on the new branch is the 
+      if ($p4changes[0] -match 'Change (\d+)') {
+        $firstChangeOnNewBranch = [int]$Matches[1]
+        Write-Host "##[debug]First changelist on this branch is $firstChangeOnNewBranch"
+      }
+      else {
+        Write-Host "##vso[task.logissue type=error]Unable to find the first change on the new branch"
         Pop-Location
         return
       }
